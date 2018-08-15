@@ -55,6 +55,12 @@ class Backlight:
             )
             sleep(time / steps / 1000)
 
+        if self.percentage == percentage:
+            self.current = max(
+                self.min,
+                min(self.current + amount / abs(amount), self.max)
+            )
+
     def increase(self, amount, **kwargs):
         self.change_percentage(amount, default_amount=5, **kwargs)
 
