@@ -6,7 +6,7 @@ import json
 import os
 from time import sleep
 
-from argparse_subparser_alias import AliasedSubParsersAction
+from bripy.argparse_subparser_alias import AliasedSubParsersAction
 
 
 BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
@@ -113,8 +113,13 @@ class Backlight:
         self.config[old_status] = self.percentage
         self.write_config()
 
+        percentage = self.percentage
+
+        if self.config[status] == percentage:
+            return
+
         self.change_percentage(
-            (self.config[status] - self.percentage) * 100,
+            (self.config[status] - percentage) * 100,
             **kwargs
         )
 
