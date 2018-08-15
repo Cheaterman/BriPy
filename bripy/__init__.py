@@ -3,6 +3,7 @@
 import argparse
 import math
 import os
+from time import sleep
 
 
 BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
@@ -41,24 +42,27 @@ class Backlight:
 
         self.current = math.exp(value * math.log(self.max))
 
-    def change_percentage(self, amount, default_amount=None):
+    def change_percentage(self, amount, default_amount=None, time=0, steps=1):
         if amount is None:
             amount = default_amount
 
         percentage = self.percentage
 
-        self.percentage = max(
-            self.min / math.log(self.max),
-            min(percentage + amount / 100, 1),
-        )
+        for step in range(steps):
+            self.percentage = max(
+                self.min / math.log(self.max),
+                min(percentage + amount / 100 * (step + 1) / steps, 1),
+            )
+            sleep(time / steps / 1000)
 
-    def increase(self, amount):
-        self.change_percentage(amount, default_amount=5)
+    def increase(self, amount, **kwargs):
+        self.change_percentage(amount, default_amount=5, **kwargs)
 
-    def decrease(self, amount):
+    def decrease(self, amount, **kwargs):
         self.change_percentage(
             -amount if amount else amount,
-            default_amount=-5
+            default_amount=-5,
+            **kwargs
         )
 
     inc = increase
@@ -86,19 +90,35 @@ def main():
         type=float,
         help='Percentage to increase or decrease brightness',
     )
+    parser.add_argument(
+        '-t',
+        '--time',
+        type=int,
+        default=200,
+        help='Length of time to spend fading the brightness',
+    )
+    parser.add_argument(
+        '-s',
+        '--steps',
+        type=int,
+        default=20,
+        help='Number of steps to take while fading the brightness',
+    )
     args = parser.parse_args()
 
     if args.action in ('+', '-'):
         args.action = 'inc' if args.action == '+' else 'dec'
 
     action_args = []
+    action_kwargs = {}
 
     if args.action != 'get':
         action_args.append(args.amount)
+        action_kwargs = {'time': args.time, 'steps': args.steps}
 
     backlight = Backlight()
 
-    getattr(backlight, args.action)(*action_args)
+    getattr(backlight, args.action)(*action_args, **action_kwargs)
 
 
 if __name__ == '__main__':
