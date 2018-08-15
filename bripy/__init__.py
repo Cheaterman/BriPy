@@ -148,6 +148,7 @@ def main():
         subparser.add_argument(
             'amount',
             type=float,
+            nargs='?',
             help='Percentage to {}rease brightness by'.format(prefix),
         )
 
