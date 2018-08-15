@@ -2,8 +2,11 @@
 
 import argparse
 import math
+import json
 import os
 from time import sleep
+
+from argparse_subparser_alias import AliasedSubParsersAction
 
 
 BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
@@ -12,8 +15,29 @@ BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
 class Backlight:
     def __init__(self):
         self.min = 1
+
         with open(os.path.join(BACKLIGHT_PATH, 'max_brightness')) as max_file:
             self.max = int(max_file.read())
+
+        self.config_path = config_path = os.path.join(
+            os.path.dirname(__file__),
+            'config.json'
+        )
+
+        if not os.path.exists(config_path):
+            self.config = {
+                'ac': self.percentage,
+                'battery': self.percentage,
+            }
+
+            self.write_config()
+        else:
+            with open(config_path) as config_file:
+                self.config = json.load(config_file)
+
+    def write_config(self):
+        with open(self.config_path, 'w') as config_file:
+            json.dump(self.config, config_file)
 
     @property
     def current(self):
@@ -74,57 +98,112 @@ class Backlight:
     inc = increase
     dec = decrease
 
-    def get(self):
+    def get(self, **kwargs):
         print(self.percentage * 100)
+
+    def set(self, amount, **kwargs):
+        self.change_percentage(
+            amount - self.percentage * 100,
+            **kwargs
+        )
+
+    def change_status(self, status, **kwargs):
+        old_status = 'ac' if status == 'battery' else 'battery'
+
+        self.config[old_status] = self.percentage
+        self.write_config()
+
+        self.change_percentage(
+            (self.config[status] - self.percentage) * 100,
+            **kwargs
+        )
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Control the backlight through sysfs',
     )
-    parser.add_argument(
-        'action',
-        choices=sum(
-            ((prefix, prefix + 'rease') for prefix in ('inc', 'dec')),
-            tuple(),
-        ) + ('+', '-', 'get'),
-        help='Increase, decrease or get backlight brightness',
+    parser.register('action', 'parsers', AliasedSubParsersAction)
+    subparsers = parser.add_subparsers(dest='action')
+    increase_parser = subparsers.add_parser(
+        'increase',
+        help='Increase backlight brightness',
+        aliases=('inc', '+'),
     )
-    parser.add_argument(
+    decrease_parser = subparsers.add_parser(
+        'decrease',
+        help='Decrease backlight brightness',
+        aliases=('dec', '-'),
+    )
+
+    for subparser, prefix in (
+        (increase_parser, 'inc'),
+        (decrease_parser, 'dec')
+    ):
+        subparser.add_argument(
+            'amount',
+            type=float,
+            help='Percentage to {}rease brightness by'.format(prefix),
+        )
+
+    get_parser = subparsers.add_parser(
+        'get',
+        help='Get backlight brightness',
+    )
+    set_parser = subparsers.add_parser(
+        'set',
+        help='Set backlight brightness',
+        aliases=('=',),
+    )
+    set_parser.add_argument(
         'amount',
-        nargs='?',
         type=float,
-        help='Percentage to increase or decrease brightness',
+        help='Percentage to set brightness to',
     )
-    parser.add_argument(
-        '-t',
-        '--time',
-        type=int,
-        default=200,
-        help='Length of time to spend fading the brightness',
+    change_status_parser = subparsers.add_parser(
+        'change_status',
+        help='Change brightness based on power status (AC or battery)',
     )
-    parser.add_argument(
-        '-s',
-        '--steps',
-        type=int,
-        default=20,
-        help='Number of steps to take while fading the brightness',
+    change_status_parser.add_argument(
+        'status',
+        choices=('ac', 'battery'),
+        help='Current power status to set brightness to',
     )
+
+    for subparser in (
+        increase_parser,
+        decrease_parser,
+        set_parser,
+        change_status_parser,
+    ):
+        subparser.add_argument(
+            '-t',
+            '--time',
+            type=int,
+            default=200,
+            help='Length of time to spend fading the brightness',
+        )
+        subparser.add_argument(
+            '-s',
+            '--steps',
+            type=int,
+            default=20,
+            help='Number of steps to take while fading the brightness',
+        )
+
     args = parser.parse_args()
-
-    if args.action in ('+', '-'):
-        args.action = 'inc' if args.action == '+' else 'dec'
-
-    action_args = []
-    action_kwargs = {}
-
-    if args.action != 'get':
-        action_args.append(args.amount)
-        action_kwargs = {'time': args.time, 'steps': args.steps}
 
     backlight = Backlight()
 
-    getattr(backlight, args.action)(*action_args, **action_kwargs)
+    action = args.action
+    del args.action
+
+    if action in ('+', '-'):
+        action = 'inc' if action == '+' else 'dec'
+    if action == '=':
+        action = 'set'
+
+    getattr(backlight, action)(**vars(args))
 
 
 if __name__ == '__main__':
