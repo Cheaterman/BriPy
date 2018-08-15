@@ -4,6 +4,7 @@ import argparse
 import math
 import json
 import os
+import sys
 from time import sleep
 
 from bripy.argparse_subparser_alias import AliasedSubParsersAction
@@ -122,6 +123,16 @@ class Backlight:
             (self.config[status] - percentage) * 100,
             **kwargs
         )
+
+
+def ac():
+    sys.argv[1:] = ['change_status', 'ac']
+    return main()
+
+
+def battery():
+    sys.argv[1:] = ['change_status', 'battery']
+    return main()
 
 
 def main():
