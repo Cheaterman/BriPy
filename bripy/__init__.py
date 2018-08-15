@@ -209,6 +209,9 @@ def main():
     if action == '=':
         action = 'set'
 
+    if not action:
+        return parser.print_usage()
+
     getattr(backlight, action)(**vars(args))
 
 
