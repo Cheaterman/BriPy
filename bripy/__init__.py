@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import math
 import json
@@ -13,7 +11,7 @@ from bripy.argparse_subparser_alias import AliasedSubParsersAction
 BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
 
 
-class Backlight:
+class Backlight(object):
     def __init__(self):
         self.min = 1
 
@@ -67,7 +65,7 @@ class Backlight:
 
         self.current = math.exp(value * math.log(self.max))
 
-    def change_percentage(self, amount, default_amount=None, time=0, steps=1):
+    def change_percentage(self, amount, default_amount=None, time=200, steps=20):
         if amount is None:
             amount = default_amount
 
@@ -78,7 +76,7 @@ class Backlight:
                 self.min / math.log(self.max),
                 min(percentage + amount / 100 * (step + 1) / steps, 1),
             )
-            sleep(time / steps / 1000)
+            sleep(time / steps / 1000.)
 
         if self.percentage == percentage:
             self.current = max(
@@ -87,12 +85,12 @@ class Backlight:
             )
 
     def increase(self, amount, **kwargs):
-        self.change_percentage(amount, default_amount=5, **kwargs)
+        self.change_percentage(amount, default_amount=5., **kwargs)
 
     def decrease(self, amount, **kwargs):
         self.change_percentage(
             -amount if amount else amount,
-            default_amount=-5,
+            default_amount=-5.,
             **kwargs
         )
 
@@ -126,13 +124,11 @@ class Backlight:
 
 
 def ac():
-    sys.argv[1:] = ['change_status', 'ac']
-    return main()
+    Backlight().change_status('ac')
 
 
 def battery():
-    sys.argv[1:] = ['change_status', 'battery']
-    return main()
+    Backlight().change_status('battery')
 
 
 def main():
@@ -141,6 +137,7 @@ def main():
     )
     parser.register('action', 'parsers', AliasedSubParsersAction)
     subparsers = parser.add_subparsers(dest='action')
+    subparsers.required = True
     increase_parser = subparsers.add_parser(
         'increase',
         help='Increase backlight brightness',
@@ -197,14 +194,14 @@ def main():
             '-t',
             '--time',
             type=int,
-            default=200,
+            default=argparse.SUPPRESS,
             help='Length of time to spend fading the brightness',
         )
         subparser.add_argument(
             '-s',
             '--steps',
             type=int,
-            default=20,
+            default=argparse.SUPPRESS,
             help='Number of steps to take while fading the brightness',
         )
 
@@ -219,9 +216,6 @@ def main():
         action = 'inc' if action == '+' else 'dec'
     if action == '=':
         action = 'set'
-
-    if not action:
-        return parser.print_usage()
 
     getattr(backlight, action)(**vars(args))
 
