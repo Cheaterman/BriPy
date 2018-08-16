@@ -18,10 +18,24 @@ class Backlight(object):
         with open(os.path.join(BACKLIGHT_PATH, 'max_brightness')) as max_file:
             self.max = int(max_file.read())
 
+        config_folder = os.path.join(
+            os.environ.get(
+                'XDG_CONFIG_HOME',
+                os.path.join(
+                    os.environ['HOME'],
+                    '.config',
+                )
+            ),
+            'BriPy',
+        )
+
         self.config_path = config_path = os.path.join(
-            os.path.dirname(__file__),
+            config_folder,
             'config.json'
         )
+
+        if not os.path.exists(config_folder):
+            os.mkdir(config_folder)
 
         if not os.path.exists(config_path):
             self.config = {
