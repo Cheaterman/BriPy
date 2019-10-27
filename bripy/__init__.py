@@ -79,7 +79,7 @@ class Backlight(object):
 
         self.current = math.exp(value * math.log(self.max))
 
-    def change_percentage(self, amount, default_amount=None, time=200, steps=20):
+    def change_percentage(self, amount, default_amount=None, time=200, steps=5):
         if amount is None:
             amount = default_amount
 
