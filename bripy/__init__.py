@@ -151,7 +151,6 @@ def main():
     )
     parser.register('action', 'parsers', AliasedSubParsersAction)
     subparsers = parser.add_subparsers(dest='action')
-    subparsers.required = True
     increase_parser = subparsers.add_parser(
         'increase',
         help='Increase backlight brightness',
@@ -228,8 +227,10 @@ def main():
 
     if action in ('+', '-'):
         action = 'inc' if action == '+' else 'dec'
-    if action == '=':
+    elif action == '=':
         action = 'set'
+    elif not action:
+        action = 'get'
 
     getattr(backlight, action)(**vars(args))
 
