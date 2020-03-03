@@ -5,7 +5,7 @@ import os
 import sys
 from time import sleep
 
-from bripy.argparse_subparser_alias import AliasedSubParsersAction
+from brightpy.argparse_subparser_alias import AliasedSubParsersAction
 
 
 BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'

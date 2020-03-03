@@ -1,13 +1,13 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='BriPy',
+    name='BrightPy',
     version='0.1.1',
     packages=find_packages(),
     entry_points={'console_scripts': [
-        'bripy = bripy:main',
-        'bripy-ac = bripy:ac',
-        'bripy-battery = bripy:battery',
+        'bripy = brightpy:main',
+        'bripy-ac = brightpy:ac',
+        'bripy-battery = brightpy:battery',
     ]},
     author='Cheaterman',
     author_email='the.cheaterman@gmail.com',
