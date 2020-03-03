@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name='BrightPy',
-    version='0.1.1',
+    version='0.1.2',
     author='Cheaterman',
     author_email='the.cheaterman@gmail.com',
     description='Control the backlight through sysfs.',
