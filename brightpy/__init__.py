@@ -8,7 +8,7 @@ from time import sleep
 from brightpy.argparse_subparser_alias import AliasedSubParsersAction
 
 
-BACKLIGHT_PATH = '/sys/class/backlight/intel_backlight'
+BACKLIGHT_PATH = '/sys/class/backlight/nvidia_wmi_ec_backlight'
 
 
 class Backlight(object):
@@ -70,24 +70,27 @@ class Backlight(object):
 
     @property
     def percentage(self):
-        return math.log(self.current) / math.log(self.max)
+        return self.current / self.max
 
     @percentage.setter
     def percentage(self, value):
         if not (0 <= value <= 1):
             raise ValueError('Invalid percentage for backlight: %r' % value)
 
-        self.current = math.exp(value * math.log(self.max))
+        self.current = min(self.max, value * self.max)
 
-    def change_percentage(self, amount, default_amount=None, time=200, steps=5):
+    def change_percentage(self, amount, default_amount=None, time=100, steps=2):
         if amount is None:
             amount = default_amount
+        elif not amount:
+            # amount is zero - avoid ZeroDivisionError
+            return
 
         percentage = self.percentage
 
         for step in range(steps):
             self.percentage = max(
-                self.min / math.log(self.max),
+                self.min / self.max,
                 min(percentage + amount / 100 * (step + 1) / steps, 1),
             )
             sleep(time / steps / 1000.)
@@ -95,7 +98,7 @@ class Backlight(object):
         if self.percentage == percentage:
             self.current = max(
                 self.min,
-                min(self.current + amount / abs(amount), self.max)
+                min(self.max, self.current + amount / abs(amount))
             )
 
     def increase(self, amount, **kwargs):
